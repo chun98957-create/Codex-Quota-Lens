@@ -27,6 +27,11 @@ from urllib.parse import urlparse
 UTC = dt.timezone.utc
 MAX_POINTS = 240
 MAX_EVENTS = 50_000
+HISTORY_DAYS = 28
+SPEED_WINDOW_MINUTES = 15
+MIN_SPEED_SPAN_MINUTES = 5
+MIN_SPEED_SAMPLES = 3
+MIN_HEATMAP_SAMPLES = 3
 TOKEN_EVENT_PATTERN = re.compile(rb'"payload"\s*:\s*\{\s*"type"\s*:\s*"token_count"')
 
 
@@ -198,17 +203,33 @@ class TelemetryStore:
             return max(0.0, delta / span_hours), minutes
         return 0.0, 0
 
-    def _intervals(self, snapshots: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    def _intervals(self, snapshots: list[dict[str, Any]], now: float) -> list[dict[str, Any]]:
+        cutoff = now - HISTORY_DAYS * 24 * 3600
+        bucket_seconds = SPEED_WINDOW_MINUTES * 60
+        buckets: dict[tuple[int, int | None], list[dict[str, Any]]] = defaultdict(list)
+        for item in snapshots:
+            if item["timestamp"] < cutoff:
+                continue
+            bucket_start = int(item["timestamp"] // bucket_seconds) * bucket_seconds
+            reset_at = item.get("reset_at")
+            reset_key = round(reset_at / 60) if reset_at else None
+            buckets[(bucket_start, reset_key)].append(item)
+
         intervals: list[dict[str, Any]] = []
-        for left, right in zip(snapshots, snapshots[1:]):
+        for items in buckets.values():
+            items.sort(key=lambda item: item["timestamp"])
+            if len(items) < 2:
+                continue
+            left, right = items[0], items[-1]
             seconds = right["timestamp"] - left["timestamp"]
             delta = right["used_percent"] - left["used_percent"]
-            if seconds < 5 * 60 or seconds > 6 * 3600 or delta <= 0:
+            if seconds < MIN_SPEED_SPAN_MINUTES * 60 or seconds > bucket_seconds or delta <= 0:
                 continue
             if not self._same_epoch(left, right):
                 continue
             rate = min(100.0, delta / (seconds / 3600))
             midpoint = left["timestamp"] + seconds / 2
+            local = dt.datetime.fromtimestamp(midpoint)
             intervals.append(
                 {
                     "start": left["timestamp"],
@@ -216,9 +237,11 @@ class TelemetryStore:
                     "midpoint": midpoint,
                     "burn_pph": rate,
                     "delta_percent": delta,
+                    "sample_count": len(items),
+                    "local_date": local.strftime("%Y-%m-%d"),
                 }
             )
-        return intervals
+        return sorted(intervals, key=lambda item: item["midpoint"])
 
     @staticmethod
     def _downsample(items: list[dict[str, Any]], limit: int = MAX_POINTS) -> list[dict[str, Any]]:
@@ -232,40 +255,75 @@ class TelemetryStore:
 
     def _heatmap(self, intervals: list[dict[str, Any]]) -> dict[str, Any]:
         hours = list(range(0, 24, 3))
-        cells: dict[tuple[int, int], list[float]] = defaultdict(list)
+        cells: dict[tuple[int, int], list[dict[str, Any]]] = defaultdict(list)
         for item in intervals:
             local = dt.datetime.fromtimestamp(item["midpoint"])
             hour_bucket = (local.hour // 3) * 3
-            cells[(hour_bucket, local.weekday())].append(item["burn_pph"])
+            cells[(hour_bucket, local.weekday())].append(item)
         values = [
-            [round(_median(cells[(hour, weekday)]), 1) for weekday in range(7)]
+            [round(_median(item["burn_pph"] for item in cells[(hour, weekday)]), 1) for weekday in range(7)]
             for hour in hours
         ]
+        counts = [
+            [len(cells[(hour, weekday)]) for weekday in range(7)]
+            for hour in hours
+        ]
+        reliable = [
+            [count >= MIN_HEATMAP_SAMPLES for count in row]
+            for row in counts
+        ]
+        date_ranges: list[list[str]] = []
+        for hour in hours:
+            row: list[str] = []
+            for weekday in range(7):
+                dates = sorted({item["local_date"] for item in cells[(hour, weekday)]})
+                if not dates:
+                    row.append("")
+                elif len(dates) == 1:
+                    row.append(dates[0])
+                else:
+                    row.append(f"{dates[0]} 至 {dates[-1]}")
+            date_ranges.append(row)
         return {
             "days": ["一", "二", "三", "四", "五", "六", "日"],
             "hours": hours,
             "values": values,
+            "counts": counts,
+            "reliable": reliable,
+            "date_ranges": date_ranges,
             "max": max((value for row in values for value in row), default=0.0),
+            "history_days": HISTORY_DAYS,
+            "window_minutes": SPEED_WINDOW_MINUTES,
+            "minimum_samples": MIN_HEATMAP_SAMPLES,
+            "observed_windows": len(intervals),
         }
 
     def _fastest(self, intervals: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        ranked = sorted(intervals, key=lambda item: item["burn_pph"], reverse=True)
+        cell_counts: dict[tuple[int, int], int] = defaultdict(int)
+        for item in intervals:
+            local = dt.datetime.fromtimestamp(item["midpoint"])
+            cell_counts[(local.weekday(), (local.hour // 3) * 3)] += 1
+        eligible = []
+        for item in intervals:
+            local = dt.datetime.fromtimestamp(item["midpoint"])
+            cell_count = cell_counts[(local.weekday(), (local.hour // 3) * 3)]
+            if item["sample_count"] >= MIN_SPEED_SAMPLES and cell_count >= MIN_HEATMAP_SAMPLES:
+                eligible.append({**item, "cell_window_count": cell_count})
+        ranked = sorted(eligible, key=lambda item: item["burn_pph"], reverse=True)
         chosen: list[dict[str, Any]] = []
-        occupied: set[int] = set()
         for item in ranked:
-            bucket = int(item["midpoint"] // 1800)
-            if bucket in occupied:
-                continue
-            occupied.add(bucket)
             start = dt.datetime.fromtimestamp(item["start"])
             end = dt.datetime.fromtimestamp(item["end"])
             chosen.append(
                 {
                     "start": _iso(item["start"]),
                     "end": _iso(item["end"]),
-                    "label": f"{start:%m-%d %H:%M}–{end:%H:%M}",
+                    "label": f"{start:%Y-%m-%d %H:%M}–{end:%H:%M}",
                     "burn_pph": round(item["burn_pph"], 1),
                     "delta_percent": round(item["delta_percent"], 1),
+                    "sample_count": item["sample_count"],
+                    "cell_window_count": item["cell_window_count"],
+                    "window_minutes": SPEED_WINDOW_MINUTES,
                 }
             )
             if len(chosen) == 3:
@@ -310,7 +368,7 @@ class TelemetryStore:
                 for item in self._downsample(history_source)
             ]
 
-            intervals = self._intervals(all_snapshots)
+            intervals = self._intervals(all_snapshots, now)
             latest_tokens = self._token_events[-1] if self._token_events else None
             recent_tokens = [item for item in self._token_events if item["timestamp"] >= history_cutoff]
             token_totals = {
