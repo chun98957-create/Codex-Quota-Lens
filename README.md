@@ -100,6 +100,16 @@ flowchart LR
 - [计算与预测算法](docs/ALGORITHMS.md)
 - [GitHub 发布路线](docs/GITHUB_LAUNCH.md)
 
+## 交互体验版
+
+仓库包含一个使用合成数据的可点击原型，覆盖概览、速度热力图和额度规划器：
+
+```bash
+python -m http.server 4173
+```
+
+然后访问 `http://127.0.0.1:4173/prototype/`。原型不会读取真实 Codex 数据。
+
 ## MVP 范围
 
 MVP 只做四件事：
