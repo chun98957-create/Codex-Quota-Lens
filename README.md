@@ -102,13 +102,13 @@ flowchart LR
 
 ## 交互体验版
 
-仓库包含一个使用合成数据的可点击原型，覆盖概览、速度热力图和额度规划器：
+仓库包含一个本地只读体验版，覆盖真实额度概览、速度热力图和额度规划器：
 
 ```bash
-python -m http.server 4173
+python prototype/server.py --port 4173
 ```
 
-然后访问 `http://127.0.0.1:4173/prototype/`。原型不会读取真实 Codex 数据。
+然后访问 `http://127.0.0.1:4173/prototype/`。服务只绑定 `127.0.0.1`，只从 Codex 会话事件中提取数字额度与 token 字段，不返回 prompt、response、reasoning 或工具内容。
 
 ## MVP 范围
 
