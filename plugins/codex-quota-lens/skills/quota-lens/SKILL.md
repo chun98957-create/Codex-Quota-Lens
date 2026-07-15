@@ -20,11 +20,13 @@ Report these values when present:
 - reset time and time remaining;
 - recent burn rate versus the sustainable budget rate;
 - projected exhaustion time only when the sample supports it;
-- the three fastest observed periods;
+- the three fastest qualified 15-minute periods;
+- the 28-day weekday heatmap with date ranges, window counts, and reliability;
 - latest and 24-hour token totals;
 - data quality, sample count, and freshness.
 
 Label rate-limit values as local observations and forecasts as estimates. Do not call this an official quota API. Mention that the local Codex event schema may change.
+Do not present a weekday heatmap cell as a stable pattern unless it contains at least three valid 15-minute windows. Treat sparse cells as insufficient data and exclude intervals with fewer than three quota snapshots from fastest-period rankings.
 
 ## Build a usage plan
 

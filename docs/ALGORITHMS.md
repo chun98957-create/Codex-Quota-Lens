@@ -49,13 +49,15 @@ eta_hours = remaining_percent / observed_burn_pph
 
 ## 5. 最快使用时段
 
-1. 把每个 reset epoch 内的快照重采样为固定桶（默认 5 分钟）。
+1. 把每个 reset epoch 内的快照重采样为固定桶。当前插件使用 15 分钟桶，正式版可根据事件密度缩短到 5 分钟。
 2. 对每个桶计算 `Δused_percent` 与 token delta。
 3. 合并过短、相邻且同方向的突增。
 4. 按 `burn_pph` 排序。
 5. 过滤有效覆盖率低于 70% 的桶。
 
-热力图使用本地时区按 `weekday × hour` 聚合，展示 median 和 P90，避免平均值被单个长任务支配。
+当前插件只使用最近 28 天数据。单个最快时段至少包含 3 条额度快照；热力图使用本地时区按 `weekday × 3-hour bucket` 聚合中位数，并显示具体日期范围与有效窗口数。少于 3 个有效窗口的热力格标记为“数据不足”，且不作为稳定规律展示。
+
+固定桶不能跨越 reset epoch。实时速度与历史规律分开计算：实时速度使用当前额度周期的最近 60/180/360 分钟快照，历史热力图只使用上述 15 分钟固定窗口。
 
 ## 6. Credits 估算
 
@@ -137,4 +139,3 @@ effort_factor = median(cost | task, model, effort)
 - 未来/过去异常 resets_at
 - reasoning token 与 output token 的包含关系
 - 未知模型和未知 effort
-

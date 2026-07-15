@@ -1,6 +1,6 @@
 {
   "name": "codex-quota-lens",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Local-first Codex quota dashboard, burn-rate analytics, and usage planning.",
   "author": {
     "name": "chun98957-create",

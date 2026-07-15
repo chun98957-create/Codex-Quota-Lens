@@ -37,7 +37,7 @@
           <span class="muted small" id="used-label">等待本地额度事件</span>
         </article>
         <article class="card stat">
-          <span class="muted" id="burn-title">最近速度</span>
+          <span class="muted" id="burn-title">当前实时速度</span>
           <strong id="burn">--</strong>
           <span class="muted small" id="budget-label">预算速度 --</span>
         </article>
@@ -87,20 +87,20 @@
       <h2 class="sr-only">额度消耗速度</h2>
       <div class="section-head">
         <div>
-          <h2>一周消耗速度热力图</h2>
-          <p class="muted small">数字表示本地观测到的额度百分点/小时</p>
+          <h2>最近28天历史速度热力图</h2>
+          <p class="muted small">按15分钟固定窗口计算；每格聚合相同星期与3小时时段</p>
         </div>
-        <span class="badge">真实历史</span>
+        <span class="badge">历史规律</span>
       </div>
       <div id="heatmap" class="heatmap" role="grid" aria-label="星期和时间的额度消耗速度"></div>
       <div class="detail small" id="heat-detail" aria-live="polite">
-        <span>选择任一时段查看实际速度</span>
-        <span class="muted">没有数据的格子显示 0</span>
+        <span>选择任一时段查看日期与样本数</span>
+        <span class="muted">“—”表示少于3个有效窗口</span>
       </div>
       <section>
         <div class="section-head">
           <h2>最快的三个时段</h2>
-          <span class="muted small">根据相邻额度快照计算</span>
+          <span class="muted small">15分钟固定窗口；至少3条额度快照</span>
         </div>
         <div class="speed-list" id="speed-list"></div>
       </section>

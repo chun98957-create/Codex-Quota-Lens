@@ -158,6 +158,10 @@ h2 { font-size: 1rem; font-weight: 500; }
   font-size: .75rem;
 }
 .heat-cell:hover, .heat-cell[aria-pressed="true"] { border-color: var(--primary); }
+.heat-cell.is-insufficient {
+  border-style: dashed;
+  color: var(--muted-foreground);
+}
 .speed-list { display: grid; gap: 12px; margin-top: 12px; }
 .speed-row {
   display: grid;

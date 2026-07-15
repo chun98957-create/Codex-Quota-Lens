@@ -84,10 +84,21 @@
     const days = data?.days || ['一', '二', '三', '四', '五', '六', '日'];
     const hours = data?.hours || [0, 3, 6, 9, 12, 15, 18, 21];
     const values = data?.values || hours.map(() => days.map(() => 0));
+    const counts = data?.counts || hours.map(() => days.map(() => 0));
+    const reliable = data?.reliable || hours.map(() => days.map(() => false));
+    const dateRanges = data?.date_ranges || hours.map(() => days.map(() => ''));
+    const minimum = Number(data?.minimum_samples || 3);
+    const historyDays = Number(data?.history_days || 28);
     const max = Math.max(Number(data?.max || 0), 1);
-    let selected = { row: 0, column: 0, value: 0 };
-    values.forEach((row, rowIndex) => row.forEach((value, columnIndex) => {
-      if (value > selected.value) selected = { row: rowIndex, column: columnIndex, value };
+    let selected = null;
+    values.forEach((row, rowIndex) => row.forEach((rawValue, columnIndex) => {
+      const value = Number(rawValue || 0);
+      const count = Number(counts[rowIndex]?.[columnIndex] || 0);
+      if (!count || !value) return;
+      const candidate = { row: rowIndex, column: columnIndex, value, reliable: Boolean(reliable[rowIndex]?.[columnIndex]) };
+      if (!selected || (candidate.reliable && !selected.reliable) || (candidate.reliable === selected.reliable && candidate.value > selected.value)) {
+        selected = candidate;
+      }
     }));
     heatmap.innerHTML = '<span></span>';
     days.forEach(day => heatmap.insertAdjacentHTML('beforeend', `<span class="heat-label">周${day}</span>`));
@@ -95,23 +106,46 @@
       heatmap.insertAdjacentHTML('beforeend', `<span class="heat-label">${String(hour).padStart(2, '0')}:00</span>`);
       values[row].forEach((rawValue, column) => {
         const value = Number(rawValue || 0);
-        const isSelected = row === selected.row && column === selected.column && selected.value > 0;
-        const intensity = Math.round(8 + value / max * 78);
-        heatmap.insertAdjacentHTML('beforeend', `<button type="button" class="heat-cell" style="--heat:${intensity}%" aria-label="周${days[column]} ${String(hour).padStart(2, '0')}:00，${fmt1(value)}% 每小时" aria-pressed="${isSelected}">${value ? fmt1(value) : '0'}</button>`);
+        const count = Number(counts[row]?.[column] || 0);
+        const isReliable = Boolean(reliable[row]?.[column]);
+        const dateRange = dateRanges[row]?.[column] || '';
+        const isSelected = Boolean(selected && row === selected.row && column === selected.column);
+        const intensity = count ? Math.round(8 + value / max * (isReliable ? 78 : 24)) : 4;
+        const state = !count ? '无数据' : isReliable ? `${fmt1(value)}% 每小时` : `数据不足，${count}/${minimum} 个窗口`;
+        const cellClass = isReliable || !count ? 'heat-cell' : 'heat-cell is-insufficient';
+        const display = !count ? '0' : isReliable ? fmt1(value) : '—';
+        heatmap.insertAdjacentHTML('beforeend', `<button type="button" class="${cellClass}" style="--heat:${intensity}%" data-row="${row}" data-column="${column}" data-value="${value}" data-count="${count}" data-range="${dateRange}" data-reliable="${isReliable}" aria-label="周${days[column]} ${String(hour).padStart(2, '0')}:00，${state}" aria-pressed="${isSelected}">${display}</button>`);
       });
     });
+
+    const showDetail = cell => {
+      const row = Number(cell.dataset.row);
+      const column = Number(cell.dataset.column);
+      const value = Number(cell.dataset.value || 0);
+      const count = Number(cell.dataset.count || 0);
+      const dateRange = cell.dataset.range || '无日期';
+      const isReliable = cell.dataset.reliable === 'true';
+      const label = `周${days[column]} ${String(hours[row]).padStart(2, '0')}:00`;
+      if (!count) {
+        $('#heat-detail').innerHTML = `<span>${label}：最近 ${historyDays} 天没有有效窗口</span><span class="muted">继续使用后会自动积累</span>`;
+      } else if (!isReliable) {
+        $('#heat-detail').innerHTML = `<span>${label}：数据不足，暂不展示速度</span><span class="muted">${dateRange} · ${count}/${minimum} 个15分钟窗口 · 不参与最快排名</span>`;
+      } else {
+        $('#heat-detail').innerHTML = `<span>${label}：${fmt1(value)}%/h</span><span class="muted">${dateRange} · ${count} 个15分钟窗口 · 最近 ${historyDays} 天</span>`;
+      }
+    };
+
     heatmap.querySelectorAll('.heat-cell').forEach(cell => {
       cell.addEventListener('click', () => {
         heatmap.querySelectorAll('.heat-cell').forEach(peer => peer.setAttribute('aria-pressed', String(peer === cell)));
-        const label = cell.getAttribute('aria-label').replace('，', ' · ');
-        $('#heat-detail').innerHTML = `<span>已选择：${label}</span><span class="muted">本地额度快照计算值</span>`;
+        showDetail(cell);
       });
     });
-    if (selected.value > 0) {
-      const selectedHour = String(hours[selected.row]).padStart(2, '0');
-      $('#heat-detail').innerHTML = `<span>最快聚合时段：周${days[selected.column]} ${selectedHour}:00 · ${fmt1(selected.value)}%/h</span><span class="muted">本地额度快照计算值</span>`;
+    if (selected) {
+      const selectedCell = heatmap.querySelector(`[data-row="${selected.row}"][data-column="${selected.column}"]`);
+      showDetail(selectedCell);
     } else {
-      $('#heat-detail').innerHTML = '<span>历史样本暂不足以计算热力图</span><span class="muted">继续使用 Codex 后会自动积累</span>';
+      $('#heat-detail').innerHTML = `<span>最近 ${historyDays} 天暂无有效的15分钟速度窗口</span><span class="muted">继续使用 Codex 后会自动积累</span>`;
     }
   }
 
@@ -119,13 +153,13 @@
     const list = $('#speed-list');
     list.innerHTML = '';
     if (!items?.length) {
-      list.innerHTML = '<div class="card muted small">暂时没有跨度超过 5 分钟的有效消耗区间。</div>';
+      list.innerHTML = '<div class="card muted small">暂时没有至少包含 3 条快照的有效15分钟窗口。</div>';
       return;
     }
     const max = Math.max(...items.map(item => Number(item.burn_pph || 0)), 1);
     items.forEach(item => {
       const value = Number(item.burn_pph || 0);
-      list.insertAdjacentHTML('beforeend', `<div class="speed-row"><div><div>${item.label}</div><div class="muted small">额度下降 ${fmt1(item.delta_percent)}%</div></div><div class="bar-track" aria-hidden="true"><div class="bar-fill" style="width:${value / max * 100}%"></div></div><strong>${fmt1(value)}%/h</strong></div>`);
+      list.insertAdjacentHTML('beforeend', `<div class="speed-row"><div><div>${item.label}</div><div class="muted small">额度下降 ${fmt1(item.delta_percent)}% · ${item.sample_count} 条快照</div></div><div class="bar-track" aria-hidden="true"><div class="bar-fill" style="width:${value / max * 100}%"></div></div><strong>${fmt1(value)}%/h</strong></div>`);
     });
   }
 
