@@ -1,0 +1,21 @@
+/target/
+/node_modules/
+/dist/
+/.turbo/
+/.vite/
+*.db
+*.db-shm
+*.db-wal
+*.log
+__pycache__/
+*.py[cod]
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+
+# Never commit local Codex data or raw imports.
+fixtures/private/
+imports/
+*.jsonl
