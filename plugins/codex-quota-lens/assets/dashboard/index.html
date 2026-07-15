@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Codex Quota Lens</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <main id="quota-lens-app">
+    <header class="topbar">
+      <div>
+        <h1>Codex Quota Lens</h1>
+        <p class="muted">本地额度观测、速度分析与使用规划</p>
+      </div>
+      <div class="source-status muted" id="source-status" aria-live="polite">
+        <span class="status-dot"></span>
+        正在连接本地数据…
+      </div>
+    </header>
+
+    <nav class="tabs" role="tablist" aria-label="额度分析页面">
+      <button type="button" class="tab is-selected" role="tab" aria-selected="true" aria-controls="overview" data-view="overview">概览</button>
+      <button type="button" class="tab" role="tab" aria-selected="false" aria-controls="speed" data-view="speed">速度</button>
+      <button type="button" class="tab" role="tab" aria-selected="false" aria-controls="planner" data-view="planner">规划器</button>
+    </nav>
+
+    <section id="overview" class="view" role="tabpanel">
+      <h2 class="sr-only">额度概览</h2>
+      <div class="stats">
+        <article class="card stat">
+          <span class="muted">剩余额度</span>
+          <strong id="remaining">--</strong>
+          <span class="muted small" id="used-label">等待本地额度事件</span>
+        </article>
+        <article class="card stat">
+          <span class="muted" id="burn-title">最近速度</span>
+          <strong id="burn">--</strong>
+          <span class="muted small" id="budget-label">预算速度 --</span>
+        </article>
+        <article class="card stat">
+          <span class="muted">距离重置</span>
+          <strong id="reset-countdown">--:--:--</strong>
+          <span class="muted small" id="forecast">等待重置时间</span>
+        </article>
+      </div>
+
+      <section class="chart-section" aria-labelledby="chart-heading">
+        <div class="section-head">
+          <div>
+            <h2 id="chart-heading">额度走势</h2>
+            <p class="muted small" id="chart-caption">等待真实额度历史</p>
+          </div>
+          <div class="chart-actions">
+            <div class="legend muted small" aria-label="图例">
+              <span class="swatch"></span><span>实际剩余</span>
+              <span class="swatch budget-swatch"></span><span>预算轨迹</span>
+            </div>
+            <button type="button" class="button primary" id="refresh">立即刷新</button>
+          </div>
+        </div>
+        <svg id="quota-chart" viewBox="0 0 720 270" role="img" aria-labelledby="quota-chart-title quota-chart-desc">
+          <title id="quota-chart-title">真实 Codex 剩余额度走势</title>
+          <desc id="quota-chart-desc">正在读取本地额度历史。</desc>
+          <g id="chart-grid"></g>
+          <path id="budget-path" class="budget-line"></path>
+          <path id="area-path" class="area"></path>
+          <path id="line-path" class="line"></path>
+          <circle id="current-dot" class="current-dot" r="5"></circle>
+          <text id="current-label" class="chart-label" text-anchor="end"></text>
+        </svg>
+        <div class="detail muted small">
+          <span id="token-mix">正在读取最近一次 token 统计…</span>
+          <span id="quality-label">只读本地数字字段</span>
+        </div>
+      </section>
+
+      <aside class="card insight" id="insight" aria-live="polite">
+        正在根据真实额度窗口计算建议…
+      </aside>
+    </section>
+
+    <section id="speed" class="view" role="tabpanel" hidden>
+      <h2 class="sr-only">额度消耗速度</h2>
+      <div class="section-head">
+        <div>
+          <h2>一周消耗速度热力图</h2>
+          <p class="muted small">数字表示本地观测到的额度百分点/小时</p>
+        </div>
+        <span class="badge">真实历史</span>
+      </div>
+      <div id="heatmap" class="heatmap" role="grid" aria-label="星期和时间的额度消耗速度"></div>
+      <div class="detail small" id="heat-detail" aria-live="polite">
+        <span>选择任一时段查看实际速度</span>
+        <span class="muted">没有数据的格子显示 0</span>
+      </div>
+      <section>
+        <div class="section-head">
+          <h2>最快的三个时段</h2>
+          <span class="muted small">根据相邻额度快照计算</span>
+        </div>
+        <div class="speed-list" id="speed-list"></div>
+      </section>
+    </section>
+
+    <section id="planner" class="view" role="tabpanel" hidden>
+      <h2 class="sr-only">额度规划器</h2>
+      <div class="planner-layout">
+        <form class="controls" onsubmit="return false">
+          <label>模型
+            <select id="model">
+              <option value="1">GPT-5.5</option>
+              <option value="0.5" selected>GPT-5.4</option>
+              <option value="0.15">GPT-5.4-Mini</option>
+              <option value="0.35">GPT-5.3-Codex</option>
+            </select>
+          </label>
+          <label>推理强度
+            <select id="effort">
+              <option value="0.7">低</option>
+              <option value="1" selected>中等</option>
+              <option value="1.45">高</option>
+              <option value="2">超高</option>
+            </select>
+          </label>
+          <label>
+            <span class="range-head"><span>每天任务数</span><strong id="task-value">6 个</strong></span>
+            <input id="tasks" type="range" min="1" max="16" value="6" step="1">
+          </label>
+          <label>
+            <span class="range-head"><span>平均任务规模</span><strong id="size-value">常规</strong></span>
+            <input id="size" type="range" min="1" max="5" value="3" step="1">
+          </label>
+        </form>
+
+        <div class="planner-results">
+          <div class="stats">
+            <article class="card stat">
+              <span class="muted">预计每日消耗</span>
+              <strong id="daily-cost">--</strong>
+              <span class="muted small" id="daily-range">等待真实基线</span>
+            </article>
+            <article class="card stat">
+              <span class="muted">重置时预计剩余</span>
+              <strong id="end-remaining">--</strong>
+              <span class="muted small" id="risk-label">等待真实额度</span>
+            </article>
+            <article class="card stat">
+              <span class="muted">建议上限</span>
+              <strong id="safe-tasks">--</strong>
+              <span class="muted small">预留 10% 安全余量</span>
+            </article>
+          </div>
+          <article class="card plan-card">
+            <div class="section-head">
+              <h2>计划使用量</h2>
+              <span class="badge" id="plan-status">等待数据</span>
+            </div>
+            <div class="meter" aria-label="计划使用量占当前剩余额度的比例">
+              <div class="meter-fill" id="meter-fill"></div>
+            </div>
+            <p class="small" id="plan-copy">连接真实额度后开始计算。</p>
+          </article>
+          <div class="detail muted small">
+            <span id="planner-basis">真实剩余额度 + 本地历史基线</span>
+            <span>模型方案仍为估算，不代表官方账单</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

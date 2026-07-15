@@ -1,0 +1,29 @@
+{
+  "name": "codex-quota-lens",
+  "version": "0.1.0",
+  "description": "Local-first Codex quota dashboard, burn-rate analytics, and usage planning.",
+  "author": {
+    "name": "chun98957-create",
+    "url": "https://github.com/chun98957-create"
+  },
+  "homepage": "https://github.com/chun98957-create/Codex-Quota-Lens",
+  "repository": "https://github.com/chun98957-create/Codex-Quota-Lens",
+  "license": "MIT",
+  "keywords": ["codex", "quota", "usage-analytics", "local-first", "productivity"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Codex Quota Lens",
+    "shortDescription": "Track Codex quota, burn rate, and usage plans locally.",
+    "longDescription": "Read numeric quota and token telemetry from local Codex sessions, identify the fastest usage periods, estimate depletion risk, and open a private local dashboard without uploading conversation content.",
+    "developerName": "chun98957-create",
+    "category": "Productivity",
+    "capabilities": ["Read", "Interactive"],
+    "websiteURL": "https://github.com/chun98957-create/Codex-Quota-Lens",
+    "brandColor": "#1C74D6",
+    "defaultPrompt": [
+      "查看我当前的 Codex 剩余额度、使用速度和重置时间。",
+      "分析我什么时候使用 Codex 额度最快。",
+      "根据模型、推理强度和任务数量规划我的 Codex 额度。"
+    ]
+  }
+}
