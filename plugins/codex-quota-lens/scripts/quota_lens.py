@@ -299,7 +299,16 @@ class TelemetryStore:
         }
 
     def _fastest(self, intervals: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        eligible = [item for item in intervals if item["sample_count"] >= MIN_SPEED_SAMPLES]
+        cell_counts: dict[tuple[int, int], int] = defaultdict(int)
+        for item in intervals:
+            local = dt.datetime.fromtimestamp(item["midpoint"])
+            cell_counts[(local.weekday(), (local.hour // 3) * 3)] += 1
+        eligible = []
+        for item in intervals:
+            local = dt.datetime.fromtimestamp(item["midpoint"])
+            cell_count = cell_counts[(local.weekday(), (local.hour // 3) * 3)]
+            if item["sample_count"] >= MIN_SPEED_SAMPLES and cell_count >= MIN_HEATMAP_SAMPLES:
+                eligible.append({**item, "cell_window_count": cell_count})
         ranked = sorted(eligible, key=lambda item: item["burn_pph"], reverse=True)
         chosen: list[dict[str, Any]] = []
         for item in ranked:
@@ -313,6 +322,7 @@ class TelemetryStore:
                     "burn_pph": round(item["burn_pph"], 1),
                     "delta_percent": round(item["delta_percent"], 1),
                     "sample_count": item["sample_count"],
+                    "cell_window_count": item["cell_window_count"],
                     "window_minutes": SPEED_WINDOW_MINUTES,
                 }
             )

@@ -159,7 +159,7 @@
     const max = Math.max(...items.map(item => Number(item.burn_pph || 0)), 1);
     items.forEach(item => {
       const value = Number(item.burn_pph || 0);
-      list.insertAdjacentHTML('beforeend', `<div class="speed-row"><div><div>${item.label}</div><div class="muted small">额度下降 ${fmt1(item.delta_percent)}% · ${item.sample_count} 条快照</div></div><div class="bar-track" aria-hidden="true"><div class="bar-fill" style="width:${value / max * 100}%"></div></div><strong>${fmt1(value)}%/h</strong></div>`);
+      list.insertAdjacentHTML('beforeend', `<div class="speed-row"><div><div>${item.label}</div><div class="muted small">额度下降 ${fmt1(item.delta_percent)}% · ${item.sample_count} 条快照 · 同类 ${item.cell_window_count} 个窗口</div></div><div class="bar-track" aria-hidden="true"><div class="bar-fill" style="width:${value / max * 100}%"></div></div><strong>${fmt1(value)}%/h</strong></div>`);
     });
   }
 

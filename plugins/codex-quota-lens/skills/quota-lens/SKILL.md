@@ -26,7 +26,7 @@ Report these values when present:
 - data quality, sample count, and freshness.
 
 Label rate-limit values as local observations and forecasts as estimates. Do not call this an official quota API. Mention that the local Codex event schema may change.
-Do not present a weekday heatmap cell as a stable pattern unless it contains at least three valid 15-minute windows. Treat sparse cells as insufficient data and exclude intervals with fewer than three quota snapshots from fastest-period rankings.
+Do not present a weekday heatmap cell as a stable pattern unless it contains at least three valid 15-minute windows. Treat sparse cells as insufficient data. Fastest-period rankings must come from a reliable heatmap cell and each ranked window must contain at least three quota snapshots.
 
 ## Build a usage plan
 
