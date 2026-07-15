@@ -1,10 +1,14 @@
 import datetime as dt
 import json
 import tempfile
+import threading
 import unittest
+import urllib.request
+from functools import partial
+from http.server import ThreadingHTTPServer
 from pathlib import Path
 
-from server import TelemetryStore, UTC
+from server import AppHandler, TelemetryStore, UTC
 
 
 class TelemetryStoreTest(unittest.TestCase):
@@ -108,6 +112,26 @@ class TelemetryStoreTest(unittest.TestCase):
         self.assertEqual(len(result["fastest"]), 3)
         self.assertTrue(all(item["sample_count"] == 3 for item in result["fastest"]))
         self.assertTrue(all(item["label"].startswith(str(dt.datetime.fromtimestamp(base).year)) for item in result["fastest"]))
+
+
+class DashboardRoutingTest(unittest.TestCase):
+    def test_root_redirects_to_asset_correct_dashboard_path(self):
+        repository_dir = Path(__file__).resolve().parent.parent
+        with tempfile.TemporaryDirectory() as temp_home:
+            AppHandler.store = TelemetryStore(Path(temp_home))
+            handler = partial(AppHandler, directory=str(repository_dir))
+            server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            try:
+                opener = urllib.request.build_opener(urllib.request.HTTPRedirectHandler())
+                response = opener.open(f"http://127.0.0.1:{server.server_port}/", timeout=3)
+                self.assertEqual(response.geturl(), f"http://127.0.0.1:{server.server_port}/prototype/index.html")
+                self.assertEqual(response.status, 200)
+            finally:
+                server.shutdown()
+                server.server_close()
+                thread.join(timeout=3)
 
 
 if __name__ == "__main__":

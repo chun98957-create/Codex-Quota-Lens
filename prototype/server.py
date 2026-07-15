@@ -440,7 +440,10 @@ class AppHandler(SimpleHTTPRequestHandler):
                 self.wfile.write(body)
             return
         if route == "/":
-            self.path = "/prototype/index.html"
+            self.send_response(302)
+            self.send_header("Location", "/prototype/index.html")
+            self.end_headers()
+            return
         super().do_GET()
 
     def log_message(self, format_string: str, *args: Any) -> None:
