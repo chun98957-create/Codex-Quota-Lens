@@ -7,6 +7,16 @@ description: Inspect the user's local Codex quota, burn rate, fastest usage peri
 
 Use the bundled read-only collector to inspect numeric Codex quota telemetry. Never parse or quote raw prompts, responses, reasoning, tool calls, or file content.
 
+## Open the embedded panel
+
+When the user asks to open, show, or launch the quota panel, call the plugin MCP tool `show_quota_dashboard` instead of starting the legacy web server. Choose the initial view from the request:
+
+- `overview` for remaining quota, reset time, burn rate, or a general dashboard request;
+- `speed` for fastest periods, usage speed, or the historical heatmap;
+- `planner` for model, reasoning-effort, task-volume, or quota-planning requests.
+
+The tool returns an MCP Apps UI resource that supported Codex/ChatGPT hosts render inline. The host controls whether the component appears inline, in a modal, or in another supported surface; do not promise a permanently pinned sidebar.
+
 ## Get a live snapshot
 
 1. Resolve this skill's plugin root two directories above this file.
@@ -38,9 +48,9 @@ When no scenario is provided, offer three compact plans:
 - balanced: higher effort only for ambiguous or high-value tasks;
 - intensive: prioritize current work and clearly show early-exhaustion risk.
 
-## Open the dashboard
+## Legacy browser dashboard
 
-Only when the user asks to open, show, or launch the dashboard, start:
+Use this fallback only when the embedded MCP Apps panel is unavailable or the user explicitly asks for the browser dashboard:
 
 `python <plugin-root>/scripts/quota_lens.py serve --port 4173`
 

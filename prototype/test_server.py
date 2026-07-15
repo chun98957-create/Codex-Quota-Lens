@@ -72,7 +72,14 @@ class TelemetryStoreTest(unittest.TestCase):
     def test_speed_history_uses_fixed_windows_and_sample_thresholds(self):
         now = dt.datetime.now(UTC).timestamp()
         reset_at = now + 4 * 3600
-        base = int((now - 2 * 3600) // (15 * 60)) * (15 * 60)
+        local_anchor = dt.datetime.fromtimestamp(now - 2 * 3600)
+        local_anchor = local_anchor.replace(
+            hour=(local_anchor.hour // 3) * 3,
+            minute=0,
+            second=0,
+            microsecond=0,
+        )
+        base = int(local_anchor.timestamp())
         used = 10.0
         tokens = 1000
 

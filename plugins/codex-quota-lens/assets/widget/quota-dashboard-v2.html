@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Codex Quota Lens</title>
+  <style>
+    :root { color-scheme: light dark; font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; --blue:#1677ff; --cyan:#41c9e2; --ink:#152238; --muted:#6f7f95; --line:rgba(108,126,151,.22); --card:rgba(255,255,255,.86); --bg:#eef5fc; }
+    * { box-sizing:border-box; }
+    body { margin:0; padding:12px; color:var(--ink); background:radial-gradient(circle at 85% -10%,rgba(65,201,226,.25),transparent 34%),linear-gradient(145deg,#f8fbff,var(--bg)); }
+    button,select,input { font:inherit; }
+    button { cursor:pointer; }
+    .shell { max-width:920px; margin:auto; }
+    header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:2px 2px 12px; }
+    .brand { display:flex; align-items:center; gap:10px; }
+    .logo { display:grid; place-items:center; width:36px; height:36px; border-radius:12px; color:#fff; font-weight:850; background:linear-gradient(145deg,var(--blue),var(--cyan)); box-shadow:0 8px 24px rgba(22,119,255,.25); }
+    h1,h2,p { margin:0; }
+    h1 { font-size:16px; letter-spacing:-.01em; }
+    h2 { font-size:14px; }
+    .muted { color:var(--muted); }
+    .small { font-size:11px; }
+    .status { display:flex; align-items:center; gap:6px; font-size:11px; }
+    .dot { width:7px; height:7px; border-radius:50%; background:#24bd74; box-shadow:0 0 0 4px rgba(36,189,116,.12); }
+    .refresh { border:1px solid var(--line); border-radius:9px; padding:6px 9px; color:var(--ink); background:rgba(255,255,255,.65); }
+    .tabs { display:flex; gap:4px; width:max-content; padding:4px; margin-bottom:10px; border:1px solid var(--line); border-radius:12px; background:rgba(255,255,255,.56); }
+    .tab { border:0; border-radius:8px; padding:7px 13px; color:var(--muted); background:transparent; }
+    .tab.active { color:#fff; background:var(--blue); box-shadow:0 5px 16px rgba(22,119,255,.2); }
+    .panel { display:none; }
+    .panel.active { display:block; }
+    .grid { display:grid; gap:9px; }
+    .stats { grid-template-columns:repeat(3,minmax(0,1fr)); }
+    .card { border:1px solid var(--line); border-radius:14px; background:var(--card); box-shadow:0 10px 26px rgba(54,82,115,.08); }
+    .stat { padding:13px; min-height:94px; }
+    .stat strong { display:block; margin:7px 0 4px; font-size:25px; line-height:1; letter-spacing:-.04em; }
+    .accent { color:var(--blue); }
+    .chart-card,.section-card { margin-top:9px; padding:14px; }
+    .section-head { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:10px; }
+    .badge { padding:4px 7px; border-radius:999px; color:#146a9c; background:rgba(65,201,226,.15); font-size:10px; font-weight:700; }
+    svg { display:block; width:100%; height:170px; overflow:visible; }
+    .grid-line { stroke:rgba(108,126,151,.17); stroke-width:1; }
+    .line { fill:none; stroke:var(--blue); stroke-width:3; stroke-linecap:round; stroke-linejoin:round; }
+    .area { fill:url(#areaFill); }
+    .budget { fill:none; stroke:#96a7bb; stroke-width:1.5; stroke-dasharray:5 5; }
+    .note { margin-top:9px; padding:10px 12px; border-left:3px solid var(--blue); border-radius:9px; background:rgba(22,119,255,.07); font-size:12px; line-height:1.5; }
+    .heat { display:grid; grid-template-columns:42px repeat(7,minmax(34px,1fr)); gap:5px; align-items:center; }
+    .heat-label { text-align:center; color:var(--muted); font-size:10px; }
+    .cell { min-height:34px; border:1px solid rgba(22,119,255,.1); border-radius:7px; color:var(--ink); background:rgba(22,119,255,var(--alpha,.04)); font-size:10px; }
+    .cell.reliable { color:#0b3f72; font-weight:700; }
+    .cell.selected { outline:2px solid var(--blue); outline-offset:1px; }
+    .detail { min-height:31px; margin-top:9px; padding:8px 10px; border-radius:9px; background:rgba(119,139,164,.08); font-size:11px; }
+    .fast-list { display:grid; gap:7px; margin-top:10px; }
+    .fast { display:grid; grid-template-columns:minmax(145px,1.1fr) 1fr 62px; gap:10px; align-items:center; font-size:11px; }
+    .track,.meter { height:7px; overflow:hidden; border-radius:99px; background:rgba(108,126,151,.14); }
+    .fill { height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--blue),var(--cyan)); }
+    .planner { grid-template-columns:minmax(210px,.7fr) minmax(0,1.3fr); }
+    .controls { padding:14px; }
+    label { display:grid; gap:6px; margin-bottom:13px; color:var(--muted); font-size:11px; }
+    select,input[type=range] { width:100%; }
+    select { border:1px solid var(--line); border-radius:9px; padding:8px; color:var(--ink); background:rgba(255,255,255,.7); }
+    input[type=range] { accent-color:var(--blue); }
+    .range-head { display:flex; justify-content:space-between; color:var(--ink); }
+    .results { display:grid; gap:9px; }
+    .results .stats { grid-template-columns:repeat(3,minmax(0,1fr)); }
+    .results .stat strong { font-size:20px; }
+    .plan { padding:14px; }
+    .meter { height:10px; margin:12px 0; }
+    .empty { padding:36px 18px; text-align:center; }
+    [hidden] { display:none!important; }
+    @media (max-width:620px) { .stats,.results .stats,.planner { grid-template-columns:1fr; } .fast { grid-template-columns:1fr 62px; } .fast .track { grid-column:1/-1; grid-row:2; } header { align-items:flex-start; } .status span:last-child { display:none; } }
+    @media (prefers-color-scheme:dark) { :root { --ink:#edf5ff; --muted:#9eb0c6; --line:rgba(172,193,218,.2); --card:rgba(20,30,45,.9); --bg:#0d1520; } body { background:radial-gradient(circle at 85% -10%,rgba(65,201,226,.13),transparent 34%),linear-gradient(145deg,#121d2b,var(--bg)); } .tabs,.refresh { background:rgba(20,30,45,.72); } .cell.reliable { color:#d9efff; } select { background:#182538; } }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div class="brand"><div class="logo">Q</div><div><h1>Codex Quota Lens</h1><p class="muted small">本地额度观测与规划</p></div></div>
+      <div class="status"><span class="dot"></span><span id="source">读取本地数字遥测</span><button class="refresh" id="refresh" type="button">刷新</button></div>
+    </header>
+    <nav class="tabs" aria-label="额度面板">
+      <button class="tab active" data-view="overview" type="button">概览</button>
+      <button class="tab" data-view="speed" type="button">速度</button>
+      <button class="tab" data-view="planner" type="button">规划器</button>
+    </nav>
+
+    <section class="panel active" id="overview">
+      <div class="grid stats">
+        <article class="card stat"><span class="muted small">剩余额度</span><strong class="accent" id="remaining">--</strong><span class="muted small" id="used">等待数据</span></article>
+        <article class="card stat"><span class="muted small" id="burn-window">最近速度</span><strong id="burn">--</strong><span class="muted small" id="budget">预算速度 --</span></article>
+        <article class="card stat"><span class="muted small">距离重置</span><strong id="countdown">--</strong><span class="muted small" id="forecast">等待重置时间</span></article>
+      </div>
+      <article class="card chart-card">
+        <div class="section-head"><div><h2>额度走势</h2><p class="muted small" id="chart-caption">等待真实快照</p></div><span class="badge">实时本地数据</span></div>
+        <svg viewBox="0 0 720 170" role="img" aria-label="Codex 剩余额度走势">
+          <defs><linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1677ff" stop-opacity=".25"/><stop offset="1" stop-color="#1677ff" stop-opacity="0"/></linearGradient></defs>
+          <g id="chart-grid"></g><path class="budget" id="budget-line"></path><path class="area" id="area"></path><path class="line" id="line"></path>
+        </svg>
+        <p class="muted small" id="tokens">尚未找到 token 明细</p>
+      </article>
+      <aside class="note" id="insight">正在计算使用建议…</aside>
+    </section>
+
+    <section class="panel" id="speed">
+      <article class="card section-card">
+        <div class="section-head"><div><h2>最近 28 天速度热力图</h2><p class="muted small">15 分钟固定窗口 · 相同星期与 3 小时时段聚合</p></div><span class="badge">至少 3 个窗口才展示</span></div>
+        <div class="heat" id="heat"></div>
+        <div class="detail muted" id="heat-detail">选择一个时段查看样本。</div>
+      </article>
+      <article class="card section-card"><div class="section-head"><h2>最快的三个合格时段</h2><span class="muted small">真实额度下降速度</span></div><div class="fast-list" id="fast-list"></div></article>
+    </section>
+
+    <section class="panel" id="planner">
+      <div class="grid planner">
+        <form class="card controls" onsubmit="return false">
+          <label>模型<select id="model"><option value="1">高能力模型</option><option value=".55" selected>均衡模型</option><option value=".25">轻量模型</option></select></label>
+          <label>推理强度<select id="effort"><option value=".7">低</option><option value="1" selected>中等</option><option value="1.45">高</option><option value="2">超高</option></select></label>
+          <label><span class="range-head"><span>每天任务数</span><strong id="tasks-value">6 个</strong></span><input id="tasks" type="range" min="1" max="20" value="6"></label>
+          <label><span class="range-head"><span>平均任务规模</span><strong id="size-value">常规</strong></span><input id="size" type="range" min="1" max="5" value="3"></label>
+        </form>
+        <div class="results">
+          <div class="grid stats">
+            <article class="card stat"><span class="muted small">预计每日消耗</span><strong id="daily">--</strong><span class="muted small" id="daily-range">估算区间</span></article>
+            <article class="card stat"><span class="muted small">重置时预计剩余</span><strong id="end">--</strong><span class="muted small" id="risk">提前耗尽风险</span></article>
+            <article class="card stat"><span class="muted small">建议上限</span><strong id="safe">--</strong><span class="muted small">保留 10% 安全余量</span></article>
+          </div>
+          <article class="card plan"><div class="section-head"><h2>计划使用量</h2><span class="badge" id="plan-status">等待数据</span></div><div class="meter"><div class="fill" id="meter-fill"></div></div><p class="small" id="plan-copy">基于真实剩余和最近速度进行相对估算。</p></article>
+        </div>
+      </div>
+    </section>
+    <section class="card empty" id="empty" hidden><h2>暂时无法读取额度</h2><p class="muted small" id="error"></p></section>
+  </main>
+  <script type="module">
+    const $ = (selector) => document.querySelector(selector);
+    const clamp = (value,min,max) => Math.min(max,Math.max(min,value));
+    const one = (value) => Number(value || 0).toFixed(1);
+    const pct = (value) => `${one(value).replace('.0','')}%`;
+    const token = (value) => Number(value || 0) >= 1e6 ? `${(value/1e6).toFixed(1)}M` : Number(value || 0) >= 1e3 ? `${(value/1e3).toFixed(1)}K` : String(value || 0);
+    let snapshot = null;
+    let resetAt = 0;
+
+    function selectView(view) {
+      const next = ['overview','speed','planner'].includes(view) ? view : 'overview';
+      document.querySelectorAll('.tab').forEach((tab) => tab.classList.toggle('active',tab.dataset.view===next));
+      document.querySelectorAll('.panel').forEach((panel) => panel.classList.toggle('active',panel.id===next));
+    }
+    document.querySelectorAll('.tab').forEach((tab) => tab.addEventListener('click',() => selectView(tab.dataset.view)));
+
+    function renderChart(history, remaining) {
+      const points = (history || []).slice(-120).map((item) => Number(item.remaining_percent));
+      if (!points.length) points.push(remaining,remaining);
+      if (points.length === 1) points.unshift(points[0]);
+      const width=720,height=170,pad=8;
+      const xy = points.map((value,index) => [pad + index/(points.length-1)*(width-pad*2), pad + (100-clamp(value,0,100))/100*(height-pad*2)]);
+      const d = xy.map(([x,y],i) => `${i?'L':'M'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+      $('#line').setAttribute('d',d); $('#area').setAttribute('d',`${d} L${xy.at(-1)[0]},${height-pad} L${xy[0][0]},${height-pad} Z`);
+      $('#budget-line').setAttribute('d',`M${pad},${xy[0][1]} L${width-pad},${height-pad}`);
+      $('#chart-grid').innerHTML = [0,25,50,75,100].map((v) => `<line class="grid-line" x1="${pad}" y1="${pad+v/100*(height-pad*2)}" x2="${width-pad}" y2="${pad+v/100*(height-pad*2)}"/>`).join('');
+      $('#chart-caption').textContent = `${history?.length || 0} 个真实快照 · 最近 24 小时或当前额度窗口`;
+    }
+
+    function renderHeatmap(data={}) {
+      const days=data.days || ['一','二','三','四','五','六','日']; const hours=data.hours || [0,3,6,9,12,15,18,21];
+      const values=data.values || []; const counts=data.counts || []; const reliable=data.reliable || []; const ranges=data.date_ranges || []; const max=Math.max(Number(data.max||0),1);
+      $('#heat').innerHTML = `<span></span>${days.map((d)=>`<span class="heat-label">周${d}</span>`).join('')}` + hours.map((hour,row) => `<span class="heat-label">${String(hour).padStart(2,'0')}:00</span>${days.map((day,col)=>{const value=Number(values[row]?.[col]||0);const count=Number(counts[row]?.[col]||0);const ok=Boolean(reliable[row]?.[col]);const alpha=count?(ok?.12+value/max*.58:.07):.025;return `<button class="cell ${ok?'reliable':''}" style="--alpha:${alpha}" data-label="周${day} ${String(hour).padStart(2,'0')}:00" data-value="${value}" data-count="${count}" data-ok="${ok}" data-range="${ranges[row]?.[col]||''}">${!count?'0':ok?one(value):'—'}</button>`;}).join('')}`).join('');
+      document.querySelectorAll('.cell').forEach((cell)=>cell.addEventListener('click',()=>{document.querySelectorAll('.cell').forEach((x)=>x.classList.remove('selected'));cell.classList.add('selected');const count=Number(cell.dataset.count);$('#heat-detail').textContent=!count?`${cell.dataset.label}：最近 ${data.history_days||28} 天没有有效窗口`:cell.dataset.ok==='true'?`${cell.dataset.label}：${one(cell.dataset.value)}%/h · ${cell.dataset.range} · ${count} 个窗口`:`${cell.dataset.label}：数据不足 · ${count}/${data.minimum_samples||3} 个窗口`; }));
+    }
+
+    function renderFast(items=[]) {
+      if (!items.length) { $('#fast-list').innerHTML='<p class="muted small">暂时没有满足样本门槛的时段。</p>'; return; }
+      const max=Math.max(...items.map((item)=>Number(item.burn_pph||0)),1);
+      $('#fast-list').innerHTML=items.slice(0,3).map((item)=>`<div class="fast"><div><strong>${item.label}</strong><div class="muted small">下降 ${one(item.delta_percent)}% · ${item.sample_count} 条快照</div></div><div class="track"><div class="fill" style="width:${Number(item.burn_pph||0)/max*100}%"></div></div><strong>${one(item.burn_pph)}%/h</strong></div>`).join('');
+    }
+
+    function updatePlanner() {
+      if (!snapshot?.quota) return;
+      const q=snapshot.quota, remaining=Number(q.remaining_percent||0), days=Math.max(Number(q.hours_until_reset||0)/24,1/24), burn=Number(q.burn_pph||0);
+      const tasks=Number($('#tasks').value),size=Number($('#size').value),model=Number($('#model').value),effort=Number($('#effort').value),base=burn?clamp(burn/4,.15,3):.55,sizeFactor=.45+size*.18;
+      const daily=tasks*base*model*effort*sizeFactor,total=daily*days,end=clamp(Math.round(remaining-total),0,100),safe=clamp(Math.floor((remaining-10)/Math.max(days*base*model*effort*sizeFactor,.01)),1,99),risk=clamp(Math.round(total/Math.max(remaining,1)*52-6),3,96);
+      $('#tasks-value').textContent=`${tasks} 个`; $('#size-value').textContent=['','很小','较小','常规','较大','大型'][size]; $('#daily').textContent=pct(daily); $('#daily-range').textContent=`区间 ${one(daily*.7)}–${one(daily*1.4)}%`; $('#end').textContent=`${end}%`; $('#risk').textContent=`提前耗尽风险 ${risk}%`; $('#safe').textContent=`${safe} 个/天`; $('#meter-fill').style.width=`${clamp(total/Math.max(remaining,1)*100,0,100)}%`; $('#plan-status').textContent=end>=10?'可持续':'可能提前用完'; $('#plan-copy').textContent=end>=10?`这个组合预计可坚持到重置，并保留约 ${end}% 额度。`:`预计需要 ${Math.round(total)}% 额度；建议降至每天 ${safe} 个任务或使用轻量模型。`;
+    }
+    ['model','effort','tasks','size'].forEach((id)=>$(`#${id}`).addEventListener('input',updatePlanner));
+
+    function updateCountdown() {
+      if (!resetAt) return;
+      const seconds=Math.max(0,Math.floor((resetAt-Date.now())/1000)),days=Math.floor(seconds/86400),hours=Math.floor(seconds%86400/3600),minutes=Math.floor(seconds%3600/60);
+      $('#countdown').textContent=`${days?days+'天 ':''}${hours}:${String(minutes).padStart(2,'0')}`;
+    }
+    setInterval(updateCountdown,1000);
+
+    function render(result) {
+      const data=result?.structuredContent || result; const next=result?._meta?.snapshot || data?.snapshot;
+      if (!next || next.mode!=='live') { $('#empty').hidden=false; document.querySelectorAll('.panel').forEach((x)=>x.hidden=true); $('#error').textContent=next?.error || '本地额度事件不可用。'; return; }
+      snapshot=next; $('#empty').hidden=true; document.querySelectorAll('.panel').forEach((x)=>x.hidden=false); const q=next.quota||{},remaining=Number(q.remaining_percent||0),burn=Number(q.burn_pph||0),budget=Number(q.budget_pph||0); resetAt=q.resets_at?Date.parse(q.resets_at):0;
+      $('#remaining').textContent=pct(remaining); $('#used').textContent=`本窗口已使用 ${pct(q.used_percent)}`; $('#burn-window').textContent=q.burn_window_minutes?`过去 ${q.burn_window_minutes} 分钟`:'最近速度'; $('#burn').textContent=`${one(burn)}%/h`; $('#budget').textContent=`预算速度 ${one(budget)}%/h`; $('#forecast').textContent=q.forecast_exhausts_at?'按当前速度可能在重置前用完':'当前样本不支持耗尽预测';
+      const latest=next.tokens?.latest; $('#tokens').textContent=latest?`最近调用：输入 ${token(latest.input_tokens)} · 缓存 ${token(latest.cached_input_tokens)} · 输出 ${token(latest.output_tokens)} · 推理 ${token(latest.reasoning_output_tokens)} tokens`:'尚未找到 token 明细';
+      const ratio=budget?burn/budget:0; $('#insight').textContent=!burn?'最近没有检测到额度下降。':ratio>1.2?`当前真实消耗约为可持续预算速度的 ${Math.round(ratio)} 倍。优先降低常规任务的模型或推理强度。`:'当前消耗节奏在预算范围内。'; $('#source').textContent=`${next.source?.rate_limit_events||0} 条额度事件 · 本地只读`;
+      renderChart(next.history,remaining); renderHeatmap(next.heatmap); renderFast(next.fastest); updatePlanner(); updateCountdown(); selectView(data.view || 'overview');
+    }
+
+    const previewMode=new URLSearchParams(location.search).has('preview');
+    let rpcId=0; const pending=new Map();
+    const notify=(method,params)=>window.parent.postMessage({jsonrpc:'2.0',method,params},'*');
+    const request=(method,params)=>new Promise((resolve,reject)=>{const id=++rpcId;pending.set(id,{resolve,reject});window.parent.postMessage({jsonrpc:'2.0',id,method,params},'*');});
+    window.addEventListener('message',(event)=>{if(event.source!==window.parent)return;const msg=event.data;if(!msg||msg.jsonrpc!=='2.0')return;if(typeof msg.id==='number'){const item=pending.get(msg.id);if(!item)return;pending.delete(msg.id);msg.error?item.reject(msg.error):item.resolve(msg.result);return;}if(msg.method==='ui/notifications/tool-result')render(msg.params);},{passive:true});
+    const bridge=previewMode?Promise.resolve():request('ui/initialize',{appInfo:{name:'codex-quota-lens',version:'0.2.0'},appCapabilities:{},protocolVersion:'2026-01-26'}).then(()=>notify('ui/notifications/initialized',{})).catch(()=>null);
+    const loadPreview=async()=>{const response=await fetch(`/api/snapshot?t=${Date.now()}`,{cache:'no-store'});const snapshot=await response.json();render({view:document.querySelector('.tab.active')?.dataset.view||'overview',snapshot});};
+    $('#refresh').addEventListener('click',async()=>{const button=$('#refresh');button.disabled=true;button.textContent='刷新中…';try{if(previewMode){await loadPreview();}else{await bridge;render(await request('tools/call',{name:'show_quota_dashboard',arguments:{view:document.querySelector('.tab.active')?.dataset.view||'overview'}}));}}finally{button.disabled=false;button.textContent='刷新';}});
+    if(previewMode) loadPreview(); else if (window.openai?.toolOutput) {
+      const metadata=window.openai.toolResponseMetadata?.mcp_tool_result?._meta || window.openai.toolResponseMetadata?._meta || window.openai.toolResponseMetadata;
+      render({structuredContent:window.openai.toolOutput,_meta:metadata});
+    }
+  </script>
+</body>
+</html>

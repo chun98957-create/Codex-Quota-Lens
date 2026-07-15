@@ -2,7 +2,7 @@
 
 ## Codex 插件（推荐）
 
-仓库现在同时提供可安装的 Codex 插件。插件能在对话中直接查看真实剩余额度、分析最快消耗时段、生成额度规划，也能启动只绑定 `127.0.0.1` 的本地 Dashboard。
+仓库现在提供 `0.2.0` 的 Codex App + Skill 插件。插件通过本地 MCP 工具在支持 MCP Apps 的 Codex 对话中渲染交互面板，也保留只绑定 `127.0.0.1` 的浏览器 Dashboard 作为兼容回退。
 
 在 Codex CLI 中运行：
 
@@ -15,12 +15,14 @@ codex plugin add codex-quota-lens@codex-quota-lens
 
 安装后可以直接说：
 
-- “查看我当前的 Codex 剩余额度和重置时间”
-- “我什么时候使用额度最快？”
-- “按不同模型和推理强度帮我规划额度”
-- “打开 Codex Quota Lens Dashboard”
+- “打开 Codex Quota Lens 额度面板”
+- “打开速度面板，看看我什么时候使用额度最快”
+- “打开规划器，按模型和推理强度帮我规划额度”
+- “在浏览器打开 Codex Quota Lens Dashboard”（兼容回退）
 
 插件只读取本机 Codex 会话中的数字额度与 token 遥测字段，不上传对话内容。当前数据源是本地观察值，并非官方配额 API。
+
+> Codex/ChatGPT 宿主决定面板最终以内嵌卡片、弹窗或其他支持的界面呈现；插件不能强制创建永久固定的右侧栏。若要把同一个 MCP App 发布到 ChatGPT 插件目录，还需要部署 HTTPS MCP 服务，并在开发者模式中创建真实的 `plugin_asdk_app...` ID；仓库不会伪造该 ID。
 
 > 本地优先的 Codex 额度观测、消耗分析与使用规划工具。
 

@@ -1,7 +1,7 @@
 {
   "name": "codex-quota-lens",
-  "version": "0.1.1",
-  "description": "Local-first Codex quota dashboard, burn-rate analytics, and usage planning.",
+  "version": "0.2.0",
+  "description": "Local-first Codex quota dashboard with an MCP Apps UI, burn-rate analytics, and usage planning.",
   "author": {
     "name": "chun98957-create",
     "url": "https://github.com/chun98957-create"
@@ -11,19 +11,20 @@
   "license": "MIT",
   "keywords": ["codex", "quota", "usage-analytics", "local-first", "productivity"],
   "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Codex Quota Lens",
-    "shortDescription": "Track Codex quota, burn rate, and usage plans locally.",
-    "longDescription": "Read numeric quota and token telemetry from local Codex sessions, identify the fastest usage periods, estimate depletion risk, and open a private local dashboard without uploading conversation content.",
+    "shortDescription": "Open an interactive Codex quota and usage-planning panel.",
+    "longDescription": "Open an MCP Apps dashboard inside supported Codex conversations, read numeric quota and token telemetry from local Codex sessions, identify the fastest usage periods, and estimate depletion risk without uploading conversation content.",
     "developerName": "chun98957-create",
     "category": "Productivity",
     "capabilities": ["Read", "Interactive"],
     "websiteURL": "https://github.com/chun98957-create/Codex-Quota-Lens",
     "brandColor": "#1C74D6",
     "defaultPrompt": [
-      "查看我当前的 Codex 剩余额度、使用速度和重置时间。",
-      "分析我什么时候使用 Codex 额度最快。",
-      "根据模型、推理强度和任务数量规划我的 Codex 额度。"
+      "打开 Codex Quota Lens 额度面板。",
+      "打开速度面板，分析我什么时候用得最快。",
+      "打开规划器，按模型和推理强度规划额度。"
     ]
   }
 }
