@@ -197,6 +197,11 @@
     }
 
     const previewMode=new URLSearchParams(location.search).has('preview');
+    async function preferSidePanel() {
+      if (previewMode || typeof window.openai?.requestDisplayMode !== 'function') return;
+      try { await window.openai.requestDisplayMode({mode:'pip'}); } catch {}
+    }
+    void preferSidePanel();
     let rpcId=0; const pending=new Map();
     const notify=(method,params)=>window.parent.postMessage({jsonrpc:'2.0',method,params},'*');
     const request=(method,params)=>new Promise((resolve,reject)=>{const id=++rpcId;pending.set(id,{resolve,reject});window.parent.postMessage({jsonrpc:'2.0',id,method,params},'*');});
